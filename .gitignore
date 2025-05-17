@@ -1,4 +1,4 @@
-# Python
+# ✅ Python 編譯暫存與虛擬環境
 __pycache__/
 *.py[cod]
 *.pyo
@@ -9,17 +9,22 @@ env/
 venv/
 ENV/
 env.bak/
-*.sqlite3
-*.log
 
-# Env
+# ✅ 日誌與資料庫
+*.log
+*.sqlite3
+*.db
+
+# ✅ dotenv 機密設定
 .env
 
-# System
+# ✅ macOS / Windows 系統垃圾檔
 .DS_Store
 Thumbs.db
 
-# Playwright
+# ✅ Playwright 測試暫存
 playwright/.cache/
 
-echo data/ >> .gitignore
+# ✅ 保護 data 資料夾（僅保留 .gitkeep）
+data/*
+!data/.gitkeep
