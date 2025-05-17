@@ -192,3 +192,44 @@ git checkout 檔案名：還原單一檔案到最後一次 commit 狀態
 
 🟢 如果想備份 env 範例
 通常把 .env.example 上傳，.env 本身絕對不要傳！
+
+🟢 下次用別台電腦拉專案 & 架設步驟（VS Code）
+1. 安裝 Git 與 Python
+確認新電腦有安裝 Git
+
+確認有安裝 Python 3.10~3.11（官網下載）
+
+2. 在 VS Code 開啟終端機（Terminal）
+開啟 VS Code
+
+用 `Ctrl + `` 開啟內建終端機（或從選單選 View > Terminal）
+
+3. 從 GitHub 拉取專案
+bash
+複製
+git clone https://github.com/你的帳號/DC-bot.git
+cd DC-bot
+4. 建立並啟動虛擬環境
+bash
+複製
+# 建立虛擬環境
+python -m venv .venv
+
+# Windows 啟動虛擬環境
+.venv\Scripts\activate
+
+# macOS/Linux 啟動虛擬環境
+source .venv/bin/activate
+5. 安裝必要套件
+bash
+複製
+pip install -r requirements.txt
+6. 配置環境變數（.env）
+複製 .env.example 為 .env
+
+編輯 .env，填入你的 DISCORD_TOKEN、CWB_TOKEN、WEATHER_LOCATION 等
+
+7. 啟動你的 Discord Bot
+bash
+複製
+python bot.py
