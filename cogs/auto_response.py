@@ -29,7 +29,7 @@ class AutoResponse(commands.Cog):
 
         content = message.content.strip().lower()
 
-        if content == "omikuji":
+        if content == "抽":
             title, color, description = random.choice(self.omikuji_results)
             embed = discord.Embed(
                 title=title,
