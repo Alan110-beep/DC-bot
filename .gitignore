@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+env/
+.venv/
+venv/
+ENV/
+env.bak/
+*.sqlite3
+*.log
+
+# Env
+.env
+
+# System
+.DS_Store
+Thumbs.db
+
+# Playwright
+playwright/.cache/
