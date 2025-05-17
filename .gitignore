@@ -21,3 +21,5 @@ Thumbs.db
 
 # Playwright
 playwright/.cache/
+
+echo data/ >> .gitignore
