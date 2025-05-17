@@ -1,106 +1,128 @@
 # DC Discord Bot
 
-一個模組化、多功能的 Discord 機器人，支援股票與幣價追蹤、天氣查詢與自動推播、音樂播放、地震速報、任務管理等功能。
+一個功能強大的多模組 Discord 機器人，整合天氣查詢、地震速報、股票與加密貨幣追蹤、任務管理與音樂播放。
 
 ---
 
-## 📦 功能模組
+## 📁 專案結構
 
-| 模組             | 指令 / 功能說明                                             |
-|------------------|----------------------------------------------------------|
-| 音樂播放          | `play <YouTube網址>`、`skip`、`stop`                    |
-| 御神籤抽籤        | `omikuji`                                                |
-| 天氣查詢          | `天氣`、`報時 now12` / `now18` / `tomorrow`             |
-| 天氣預警推播      | 紫外線、濕度、強風、豪雨自動監測推播                        |
-| 地震通知          | `地震` 查詢最近一筆台灣本島 ≥4 級地震，自動推播            |
-| 股票提醒          | `2330 700` → 價格達標推播，`清單`、`取消 <股票>`、`查 <股票>` |
-| 加密幣提醒        | `BTC 70000` → 達標推播，`清單`、`取消 BTC`、`BTC` 查價     |
-| 任務管理          | `任務 明天 繳費`、`完成 繳費`、`刪任務 繳費` 等            |
-
----
-
-## 🚀 快速開始
-
-### 1. 建立並啟動虛擬環境
-```bash
-python -m venv .venv
-.venv\Scripts\activate      # Windows
-source .venv/bin/activate  # macOS/Linux
+```
+DC-bot/
+├── bot.py
+├── .env.example
+├── requirements.txt
+├── README.md
+├── .gitignore
+├── cogs/
+│   ├── auto_response.py
+│   ├── crypto_alerts.py
+│   ├── earthquake.py
+│   ├── music.py
+│   ├── stock_alerts.py
+│   ├── task.py
+│   ├── weather.py
+│   └── weather_alerts.py
+├── utils/
+│   └── cwb.py
+└── data/
+    └── stock_alerts.db
 ```
 
-### 2. 安裝依賴
+---
+
+## ⚙️ 安裝與執行
+
 ```bash
+# 安裝依賴
 pip install -r requirements.txt
-```
 
-### 3. 建立 `.env` 設定檔
-```env
-DISCORD_TOKEN=你的機器人Token
-CWB_TOKEN=你的中央氣象局API金鑰
-WEATHER_LOCATION=新北市
-```
+# 設定環境變數（複製 .env.example 並改名為 .env）
 
-### 4. 啟動 Bot
-```bash
+# 啟動機器人
 python bot.py
 ```
 
 ---
 
-## ☁️ 推送到 GitHub
+## 🔐 .env.example 設定範例
 
-### 初始化 Git 並推送
+```env
+DISCORD_TOKEN=你的 Discord Bot Token
+CWB_TOKEN=你的中央氣象局 API Token
+WEATHER_LOCATION=新北市
+CHROMEDRIVER_PATH=chromedriver.exe 絕對路徑（若使用 selenium）
+GOOGLE_CHROME_BIN=chrome.exe 絕對路徑（若使用 selenium）
+```
+
+---
+
+## 🧠 支援功能模組
+
+- `music.py`：YouTube 音樂播放
+- `auto_response.py`：御神籤互動（omikuji）
+- `weather.py`：天氣查詢、定時報時、紫外線與體感溫度
+- `weather_alerts.py`：豪雨、強風、濕度與紫外線警示
+- `earthquake.py`：地震速報與查詢（限台灣本島 M≥4）
+- `stock_alerts.py`：股票查詢、K線圖、突破通知、價格追蹤（台美股）
+- `crypto_alerts.py`：加密幣即時查詢與價格通知（CoinGecko）
+- `task.py`：任務新增、延後、刪除、完成與甘特圖/日曆圖顯示
+
+---
+
+## ✅ 指令總覽
+
+| 模組       | 指令內容                            | 範例                         |
+|------------|-------------------------------------|------------------------------|
+| 音樂播放   | `play <網址>` `skip` `stop`         | play https://...             |
+| 御神籤     | `omikuji`                            | omikuji                      |
+| 天氣查詢   | `天氣` `報時 now12/now18/tomorrow` | 天氣 / 報時 now12           |
+| 地震查詢   | `地震`                               | 地震                         |
+| 股票查詢   | `-2330` 或 `-AAPL` 或 `-2330 600`   | -2330 / -AAPL / -2330 600    |
+| 股票清單   | `-清單` `-取消 <代碼>`              | -清單 / -取消 2330          |
+| 幣價查詢   | `BTC` / `ETH` / `DOGE`              | BTC / ETH 20000              |
+| 幣價清單   | `清單` `取消 <代碼>`                | 清單 / 取消 BTC             |
+| 任務管理   | `任務`, `完成`, `刪任務`, `延後`, `週計畫`, `回顧`, `日曆圖` | 任務 6/10~6/12 報告撰寫 |
+
+---
+
+## 🧪 Git 操作教學
+
+### 初始化專案
 ```bash
 git init
+git remote add origin https://github.com/你的帳號/DC-bot.git
 git add .
 git commit -m "🎉 初始提交：上傳 DC Discord Bot"
-git branch -M main
-git remote add origin https://github.com/你的帳號/你的repo.git
-git push -u origin main
+git push -u origin main  # 或 master
 ```
 
 ### 常用 Git 指令
 ```bash
-git status          # 查看當前變更狀態
-git add .           # 將所有變更加入暫存區
-git commit -m "訊息"  # 提交變更
-git log             # 查看提交歷史
-git pull            # 拉取遠端最新程式碼
-git push            # 推送程式碼到 GitHub
-```
+git status         # 查看目前變更
 
+# 如果 push 被拒絕（遠端有內容）
+git pull origin main --allow-unrelated-histories  # 合併遠端內容
+git push -u origin main
+
+# 強制推送（會覆蓋遠端）
+git push -f origin main
+
+#下載一份新的資料夾 DC-bot，裡面包含遠端所有檔案與 .git 記錄。
+git clone https://github.com/Alan110-beep/DC-bot.git
 ---
 
-## 🔒 資安提醒
-請確保 `.env` 未被加入 Git，應加入 `.gitignore` 內容如下：
-```gitignore
+## 📦 .gitignore 建議
+```
 .env
-data/
 __pycache__/
-*.pyc
+*.log
+*.sqlite3
+data/
+*.db
+venv/
 ```
 
 ---
 
-## 📁 專案結構
-```
-Bot/
-├── bot.py
-├── .env.example
-├── requirements.txt
-├── README.md
-├── cogs/
-│   ├── music.py
-│   ├── auto_response.py
-│   ├── weather.py
-│   ├── weather_alerts.py
-│   ├── earthquake.py
-│   ├── stock_alerts.py
-│   └── task.py
-├── utils/
-│   └── cwb.py
-└── data/  # 設定儲存與資料暫存（不加入 Git）
-```
-
----
-
+## 📜 授權
+MIT License
