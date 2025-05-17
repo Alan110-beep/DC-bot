@@ -1,9 +1,11 @@
 # cogs/weather.py
+
 import discord
 from discord.ext import commands, tasks
 from datetime import datetime
 from utils import cwb
 from discord.abc import Messageable
+import traceback
 
 class Weather(commands.Cog):
     def __init__(self, bot):
@@ -39,47 +41,58 @@ class Weather(commands.Cog):
             elif cmd == "tomorrow":
                 await self.send_tomorrow_weather(message.channel, label="📅 明天天氣預報")
             else:
-                await message.channel.send("請輸入：報時 now12 / now18 / tomorrow")
+                await self.send_error(message.channel, "請輸入：報時 now12 / now18 / tomorrow")
 
     # 即時天氣 + 選擇性加上紫外線/體感
     async def send_now_weather(self, channel: Messageable, label="📡 即時天氣", include_extra=False):
-        weather = await cwb.get_current_weather()
-        if "error" in weather:
-            await channel.send(f"❌ {weather['error']}")
-            return
+        try:
+            weather = await cwb.get_current_weather()
+            if "error" in weather:
+                return await self.send_error(channel, weather['error'])
 
-        msg = (
-            f"{label}（{weather['地點']}）\n"
-            f"🕒 {weather['時間']}\n"
-            f"🌡️ {weather['溫度']}　💧 {weather['濕度']}\n"
-            f"☁️ 天氣：{weather['天氣']}"
-        )
+            embed = discord.Embed(
+                title=label,
+                description=f"地點：{weather['地點']}\n🕒 {weather['時間']}",
+                color=0x1DA1F2
+            )
+            embed.add_field(name="🌡️ 溫度", value=weather['溫度'], inline=True)
+            embed.add_field(name="💧 濕度", value=weather['濕度'], inline=True)
+            embed.add_field(name="☁️ 天氣", value=weather['天氣'], inline=False)
 
-        if include_extra:
-            feels = await cwb.get_feels_like()
-            uv = await cwb.get_uv_index()
-            if "error" not in feels:
-                msg += f"\n🌬 體感：{feels['體感溫度']}（{feels['描述']}）"
-            if "error" not in uv:
-                msg += f"\n🌞 紫外線：{uv['紫外線指數']} 等級：{uv['等級']}"
+            if include_extra:
+                feels = await cwb.get_feels_like()
+                uv = await cwb.get_uv_index()
+                if "error" not in feels:
+                    embed.add_field(name="🌬 體感", value=f"{feels['體感溫度']}（{feels['描述']}）", inline=False)
+                if "error" not in uv:
+                    embed.add_field(name="🌞 紫外線", value=f"{uv['紫外線指數']}（{uv['等級']}）", inline=False)
 
-        await channel.send(msg)
+            embed.set_footer(text="資料來源：中央氣象署")
+            await channel.send(embed=embed)
+        except Exception as e:
+            traceback.print_exc()
+            await self.send_error(channel, f"即時天氣查詢失敗：{e}")
 
     # 明天天氣（使用三日預報）
     async def send_tomorrow_weather(self, channel: Messageable, label="📅 明天天氣預報"):
-        data = await cwb.get_tomorrow_forecast()
-        if "error" in data:
-            await channel.send(f"❌ {data['error']}")
-            return
+        try:
+            data = await cwb.get_tomorrow_forecast()
+            if "error" in data:
+                return await self.send_error(channel, data['error'])
 
-        msg = (
-            f"{label}（{data['地點']}）\n"
-            f"📅 {data['時間範圍']}\n"
-            f"🌤️ 天氣：{data['天氣']}\n"
-            f"🌡️ 氣溫：{data['溫度']}\n"
-            f"☔ 降雨：{data['降雨機率']}"
-        )
-        await channel.send(msg)
+            embed = discord.Embed(
+                title=label,
+                description=f"地點：{data['地點']}\n{data['時間範圍']}",
+                color=0x00C3A0
+            )
+            embed.add_field(name="🌤️ 天氣", value=data['天氣'], inline=False)
+            embed.add_field(name="🌡️ 氣溫", value=data['溫度'], inline=True)
+            embed.add_field(name="☔ 降雨機率", value=data['降雨機率'], inline=True)
+            embed.set_footer(text="資料來源：中央氣象署")
+            await channel.send(embed=embed)
+        except Exception as e:
+            traceback.print_exc()
+            await self.send_error(channel, f"明天天氣查詢失敗：{e}")
 
     # 定時任務：每天中午 12:00（含體感/紫外線）
     @tasks.loop(minutes=1)
@@ -110,6 +123,15 @@ class Weather(commands.Cog):
                 channel = await self.get_default_channel(guild)
                 if channel:
                     await self.send_tomorrow_weather(channel)
+
+    # 統一錯誤回報 embed
+    async def send_error(self, channel: Messageable, text):
+        embed = discord.Embed(
+            title="❌ 錯誤",
+            description=str(text),
+            color=0xFF3333
+        )
+        await channel.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(Weather(bot))

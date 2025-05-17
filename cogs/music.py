@@ -1,28 +1,69 @@
 # cogs/music.py
+
 import discord
 from discord.ext import commands
-from youtube_dl import YoutubeDL
+from yt_dlp import YoutubeDL
 from discord import FFmpegPCMAudio, VoiceClient
-from typing import Optional, cast, Any
+from typing import Optional, cast, Any, Dict, List
 
 YDL_OPTIONS = {
     "format": "bestaudio/best",
     "noplaylist": False,
-    "quiet": True
+    "quiet": True,
 }
+
+FFMPEG_OPTIONS = {
+    "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
+    "options": "-vn",
+}
+
+class SongInfo:
+    def __init__(self, title: str, url: str, webpage_url: str, thumbnail: str, requester: str):
+        self.title = title
+        self.url = url
+        self.webpage_url = webpage_url
+        self.thumbnail = thumbnail
+        self.requester = requester
 
 class Music(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.queues: dict[int, list[str]] = {}
-        self.loop_flags: dict[int, bool] = {}
-        self.now_playing: dict[int, str] = {}
+        self.queues: Dict[int, List[SongInfo]] = {}
+        self.loop_flags: Dict[int, bool] = {}
+        self.now_playing: Dict[int, SongInfo] = {}
 
-    def get_queue(self, guild_id: int) -> list[str]:
+    def get_queue(self, guild_id: int) -> List[SongInfo]:
         return self.queues.setdefault(guild_id, [])
 
     def is_looping(self, guild_id: int) -> bool:
         return self.loop_flags.get(guild_id, False)
+
+    async def send_now_playing(self, message: discord.Message, song: SongInfo):
+        embed = discord.Embed(
+            title="🎵 正在播放",
+            description=f"[{song.title}]({song.webpage_url})",
+            color=0x1DB954,
+        )
+        if song.thumbnail:
+            embed.set_thumbnail(url=song.thumbnail)
+        embed.add_field(name="點歌者", value=song.requester, inline=True)
+        await message.channel.send(embed=embed)
+
+    async def send_queue(self, message: discord.Message, queue: List[SongInfo]):
+        embed = discord.Embed(
+            title="📜 播放清單",
+            color=0x7289DA,
+        )
+        if not queue:
+            embed.description = "播放清單為空"
+        else:
+            for idx, song in enumerate(queue, 1):
+                embed.add_field(
+                    name=f"{idx}. {song.title}",
+                    value=f"[連結]({song.webpage_url}) | 點歌者: {song.requester}",
+                    inline=False,
+                )
+        await message.channel.send(embed=embed)
 
     def play_next(self, message: discord.Message):
         guild = message.guild
@@ -37,10 +78,16 @@ class Music(commands.Cog):
                 queue.insert(0, self.now_playing[guild.id])
 
             if queue:
-                url = queue.pop(0)
-                self.now_playing[guild.id] = url
-                source = FFmpegPCMAudio(url, executable="ffmpeg")
+                song = queue.pop(0)
+                self.now_playing[guild.id] = song
+                # **這裡已修正參數**
+                source = FFmpegPCMAudio(
+                    song.url,
+                    before_options=FFMPEG_OPTIONS["before_options"],
+                    options=FFMPEG_OPTIONS["options"]
+                )
                 vc.play(source, after=lambda e: self.play_next(message))
+                self.bot.loop.create_task(self.send_now_playing(message, song))
             else:
                 self.now_playing.pop(guild.id, None)
                 self.loop_flags[guild.id] = False
@@ -78,18 +125,39 @@ class Music(commands.Cog):
                         return
 
                     entries = info.get("entries") if isinstance(info, dict) else None
+                    song_infos = []
                     if isinstance(entries, list):
                         for entry in entries:
-                            audio_url = entry.get("url") if isinstance(entry, dict) else None
-                            title = entry.get("title", "未知標題") if isinstance(entry, dict) else "未知標題"
+                            audio_url = entry.get("url")
+                            title = entry.get("title", "未知標題")
+                            webpage_url = entry.get("webpage_url", query)
+                            thumbnail = entry.get("thumbnail", "")
                             if audio_url:
-                                self.get_queue(guild.id).append(audio_url)
-                                await message.channel.send(f"✅ 已加入播放清單：{title}")
+                                song = SongInfo(
+                                    title=title,
+                                    url=audio_url,
+                                    webpage_url=webpage_url,
+                                    thumbnail=thumbnail,
+                                    requester=message.author.mention,
+                                )
+                                self.get_queue(guild.id).append(song)
+                                song_infos.append(song)
+                        if song_infos:
+                            await message.channel.send(f"✅ 已加入 {len(song_infos)} 首歌曲到播放清單")
                     else:
-                        audio_url = info.get("url") if isinstance(info, dict) else None
-                        title = info.get("title", "未知標題") if isinstance(info, dict) else "未知標題"
+                        audio_url = info.get("url")
+                        title = info.get("title", "未知標題")
+                        webpage_url = info.get("webpage_url", query)
+                        thumbnail = info.get("thumbnail", "")
                         if audio_url:
-                            self.get_queue(guild.id).append(audio_url)
+                            song = SongInfo(
+                                title=title,
+                                url=audio_url,
+                                webpage_url=webpage_url,
+                                thumbnail=thumbnail,
+                                requester=message.author.mention,
+                            )
+                            self.get_queue(guild.id).append(song)
                             await message.channel.send(f"✅ 已加入播放清單：{title}")
 
                 if vc and isinstance(vc, VoiceClient) and not vc.is_playing():
@@ -100,11 +168,14 @@ class Music(commands.Cog):
 
         elif content == "清單":
             queue = self.get_queue(guild.id)
-            if not queue:
-                await message.channel.send("📭 播放清單為空")
+            await self.send_queue(message, queue)
+
+        elif content == "現在播什麼":
+            song = self.now_playing.get(guild.id)
+            if song:
+                await self.send_now_playing(message, song)
             else:
-                msg = "\n".join([f"{i+1}. {url}" for i, url in enumerate(queue)])
-                await message.channel.send(f"📜 當前清單：\n{msg}")
+                await message.channel.send("目前沒有正在播放的音樂")
 
         elif content == "跳過":
             if vc and isinstance(vc, VoiceClient) and vc.is_playing():

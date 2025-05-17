@@ -1,8 +1,8 @@
-# bot.py
 import os
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
+import traceback
 
 load_dotenv()
 
@@ -16,20 +16,18 @@ intents.voice_states = True
 intents.guilds = True
 intents.members = True
 
+COGS_DIR = "cogs"
+
 class StarBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix="!", intents=intents)
 
     async def setup_hook(self):
+        # 自動讀取 cogs 目錄下所有 .py 檔案
         cogs = [
-            "cogs.music",
-            "cogs.auto_response",
-            "cogs.weather",
-            "cogs.weather_alerts",
-            "cogs.earthquake",
-            "cogs.stock_alerts",
-            "cogs.task",
-            "cogs.crypto_alerts"
+            f"{COGS_DIR}.{f[:-3]}"
+            for f in os.listdir(COGS_DIR)
+            if f.endswith(".py") and not f.startswith("_")
         ]
         for cog in cogs:
             try:
@@ -37,6 +35,7 @@ class StarBot(commands.Bot):
                 print(f"✅ 成功載入 {cog}")
             except Exception as e:
                 print(f"❌ 載入 {cog} 失敗：{e}")
+                traceback.print_exc()
 
 bot = StarBot()
 
